@@ -1,23 +1,27 @@
 package com.project.demo.rest.product;
 
 import com.project.demo.logic.entity.category.Category;
+import com.project.demo.logic.entity.category.CategoryRepository;
 import com.project.demo.logic.entity.product.Product;
 import com.project.demo.logic.entity.product.ProductRepository;
-import com.project.demo.logic.entity.user.User;
+import com.project.demo.logic.entity.product.ProductRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/products")
 public class ProductRestController {
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
 
     @GetMapping("/retrive")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN_ROLE')")
@@ -27,9 +31,21 @@ public class ProductRestController {
 
     @PostMapping("/create")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN_ROLE')")
-    public Product addProduct(@RequestBody Product product) {
-        Category category =
-        return productRepository.save(product);
+    public ResponseEntity<?> createProduct(@RequestBody ProductRequest productRequest) {
+        Optional<Category> optionalCategory = categoryRepository.findById(productRequest.getCategoryId());
+        if (optionalCategory.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Category not found");
+        }
+
+        Product product = new Product();
+        product.setName(productRequest.getName());
+        product.setDescripcion(productRequest.getDescripcion());
+        product.setPrice(productRequest.getPrice());
+        product.setStock(productRequest.getStock());
+        product.setCategory(optionalCategory.get());
+
+        Product savedProduct = productRepository.save(product);
+        return ResponseEntity.ok(savedProduct);
     }
 
     @GetMapping("/retriveById/{id}")
